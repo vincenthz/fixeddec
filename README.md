@@ -1,4 +1,4 @@
-= FixedDec
+# FixedDec
 
 A fixed-point decimal number type with generic precision.
 
