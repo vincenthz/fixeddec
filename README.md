@@ -10,7 +10,7 @@ This module provides the `FixedDec<T, P>` type, a lightweight wrapper around int
 arithmetic, which is useful in financial or deterministic computation contexts.
 The `P` const generic parameter defines the number of decimal places. For example:
 
- - `FixedDec<123, 0>` represents the integer `123`
- - `FixedDec<123, 3>` represents the decimal `0.123`
+ - `FixedDec<u32, 0>::new(123)` represents the integer `123`
+ - `FixedDec<u32, 3>::new(123)` represents the decimal `0.123`
 
 Internally, the value is stored as a raw integer of type `T`, and the decimal point is applied logically according to the value of `P`.
