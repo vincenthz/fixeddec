@@ -58,7 +58,7 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 extern crate alloc;
 
-mod constants;
+pub mod constants;
 mod number;
 
 use number::Number;
