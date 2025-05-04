@@ -10,11 +10,17 @@
 //!
 //! The `P` const generic parameter defines the number of decimal places. For example:
 //!
-//! - `FixedDec<u32, 0>::new(123)` with internal value 123u32, represents the integer `123`
-//! - `FixedDec<u32, 3>::new(123)` with internal value 123u32, represents the decimal `0.123`
+//! - `FixedDec::<u32, 0>::new(123)` with internal value 123u32, represents the integer `123`
+//! - `FixedDec::<u32, 3>::new(123)` with internal value 123u32, represents the decimal `0.123`
 //!
 //! Internally, the value is stored as a raw integer of type `T`, and the decimal point is
 //! applied logically according to the value of `P`.
+//!
+//! ## Scientific Notation
+//!
+//! FixedDec precision translate into the scientific notation with negative exponent:
+//!
+//! `V*10^(-P) == FixedDec::<_, P>::new(V)`
 //!
 //! ## Type Parameters
 //!
@@ -36,6 +42,14 @@
 //!
 //! let a: FixedDec<i32, 2> = FixedDec::new(12345);
 //! assert_eq!(a.to_string(), "123.45");
+//!
+//! // with float    : 0.1 + 0.2 = 0.30000000000000004
+//! // with FixedDec : 0.1 + 0.2 = 0.3
+//! let point_one = FixedDec::<u32, 1>::new(1);
+//! let point_two = FixedDec::new(2);
+//! let point_three = FixedDec::new(3);
+//!
+//! assert_eq!(point_one + point_two, point_three);
 //! ```
 //!
 #![no_std]
@@ -51,9 +65,6 @@ use number::Number;
 /// A integral number with a precision of fractional digits
 ///
 /// At P=0, it is a normal integer with no fractional part
-///
-/// * `FixedDec(123, 0)` represent 123
-/// * `FixedDec(123, 3)` = 0.123
 ///
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
