@@ -20,9 +20,9 @@ pub trait Number:
     ///
     /// This should be equivalent to:
     ///
-    /// ```
-    /// fn self_ten_power(p: u32) {
-    ///     let (r, overflowed) = Self::overflowing_pow(10, p);
+    /// ```ignore
+    /// fn self_ten_power<T>(p: u32) -> Option<T> {
+    ///     let (r, overflowed) = T::overflowing_pow(10, p);
     ///     (!overflowed).then_some(r)
     /// }
     /// ```

@@ -58,6 +58,7 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 extern crate alloc;
 
+mod constants;
 mod number;
 
 use number::Number;
@@ -95,8 +96,9 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     /// use fixeddec::FixedDec;
     /// let f = FixedDec::<u32, 3>::new(1_234);
     /// ```
-    pub fn new(t: T) -> Self {
-        assert!(T::ten_power(P).is_some());
+    pub const fn new(t: T) -> Self {
+        // similar to assert!(T::ten_power(P).is_some()); but const'able
+        assert!(T::TEN_POWER.len() > P as usize);
         Self(t)
     }
 
@@ -114,17 +116,34 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     }
 
     /// Try to change the precision of the value without changing the represented value
+    ///
+    /// If the demanded precision is smaller than the original precision, then silent truncating will happens:
+    ///
+    /// ```
+    /// use fixeddec::FixedDec;
+    /// let orig_value = FixedDec::<u32, 3>::new(123);
+    /// let new_value = orig_value.set_precision::<2>();
+    /// assert_eq!(new_value, Some(FixedDec::<u32, 2>::new(12)));
+    /// ```
+    ///
+    /// ```
+    /// use fixeddec::FixedDec;
+    /// let orig_value = FixedDec::<u32, 3>::new(123);
+    /// let new_value = orig_value.set_precision::<5>();
+    /// assert_eq!(new_value, Some(FixedDec::<u32, 5>::new(12300)));
+    /// ```
+    ///
     pub fn set_precision<const O: u32>(self) -> Option<FixedDec<T, O>> {
         use core::cmp::Ordering;
         match P.cmp(&O) {
             Ordering::Equal => Some(FixedDec(self.0)),
-            Ordering::Less => {
-                let diff = P - O;
-                T::ten_power(diff).and_then(|prec| self.0.checked_mul(prec).map(FixedDec))
-            }
             Ordering::Greater => {
-                let diff = O - P;
+                let diff = P - O;
                 T::ten_power(diff).and_then(|prec| self.0.checked_div(prec).map(FixedDec))
+            }
+            Ordering::Less => {
+                let diff = O - P;
+                T::ten_power(diff).and_then(|prec| self.0.checked_mul(prec).map(FixedDec))
             }
         }
     }
