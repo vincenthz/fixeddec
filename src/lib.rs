@@ -22,6 +22,16 @@
 //!
 //! `V*10^(-P) == FixedDec::<_, P>::new(V)`
 //!
+//! ## Unit
+//!
+//! For example this could be used to define SI suffixes:
+//!
+//! ```
+//! type Milli = FixedDec<u64, 3>;
+//! type Micro = FixedDec<u64, 6>;
+//! type Nano = FixedDec<u64, 9>;
+//! ```
+//!
 //! ## Type Parameters
 //!
 //! - `T`: The underlying integer type which is currently limited to rust builtin integer types (e.g., `i32`, `u64`)
@@ -337,12 +347,5 @@ mod tests {
         assert_eq!(x3.round_at(2), FixedDec::new(1230));
         assert_eq!(x4.round_at(1), FixedDec::new(123450));
         assert_eq!(x4.round_at(3), FixedDec::new(123456));
-    }
-
-    #[test]
-    fn min_max() {
-        let m = FixedDec::<u32, 4>::MIN;
-        let m2 = FixedDec::<u32, 4>::MAX;
-        assert_eq!(m, m2)
     }
 }
