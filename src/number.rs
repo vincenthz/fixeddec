@@ -15,18 +15,9 @@ pub trait Number:
     + 'static
 {
     const TEN_POWER: &'static [Self];
+    const MIN: Self;
+    const MAX: Self;
 
-    /// Give the power of 10s for this type
-    ///
-    /// This should be equivalent to:
-    ///
-    /// ```ignore
-    /// fn self_ten_power<T>(p: u32) -> Option<T> {
-    ///     let (r, overflowed) = T::overflowing_pow(10, p);
-    ///     (!overflowed).then_some(r)
-    /// }
-    /// ```
-    fn ten_power(p: u32) -> Option<Self>;
     fn checked_add(self, rhs: Self) -> Option<Self>;
     fn checked_sub(self, rhs: Self) -> Option<Self>;
     fn checked_mul(self, rhs: Self) -> Option<Self>;
@@ -34,13 +25,20 @@ pub trait Number:
     fn checked_rem(self, rhs: Self) -> Option<Self>;
 }
 
+pub(crate) const fn ten_power<T: Number>(p: u32) -> Option<T> {
+    if T::TEN_POWER.len() > p as usize {
+        Some(T::TEN_POWER[p as usize])
+    } else {
+        None
+    }
+}
+
 macro_rules! number_impl {
     ($ty:ty, $power10:expr, $($tt:tt)+) => {
         impl Number for $ty {
+            const MIN : $ty = <$ty>::MIN;
+            const MAX : $ty = <$ty>::MAX;
             const TEN_POWER : &'static [$ty] = &$power10;
-            fn ten_power(p: u32) -> Option<Self> {
-                Self::TEN_POWER.get(p as usize).cloned()
-            }
             fn checked_add(self, rhs: $ty) -> Option<$ty> {
                 self.checked_add(rhs)
             }

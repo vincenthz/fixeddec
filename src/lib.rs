@@ -61,7 +61,7 @@ extern crate alloc;
 pub mod constants;
 mod number;
 
-use number::Number;
+use number::{Number, ten_power};
 
 /// A integral number with a precision of fractional digits
 ///
@@ -90,6 +90,12 @@ impl<T: Number, const P: u32> alloc::fmt::Display for FixedDec<T, P> {
 }
 
 impl<T: Number, const P: u32> FixedDec<T, P> {
+    /// Minimum value representable by this type
+    pub const MIN: Self = Self::new(T::MIN);
+
+    /// Maximum value representable by this type
+    pub const MAX: Self = Self::new(T::MAX);
+
     /// Create a new FixedDec using the backing value already at the required precision
     ///
     /// ```
@@ -112,7 +118,7 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     ///
     /// If the value represented with the fractional part overflow the backing part, returns None
     pub fn from_integral(t: T) -> Option<Self> {
-        T::ten_power(P).and_then(|prec| t.checked_mul(prec).map(Self))
+        ten_power::<T>(P).and_then(|prec| t.checked_mul(prec).map(Self))
     }
 
     /// Try to change the precision of the value without changing the represented value
@@ -139,11 +145,11 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
             Ordering::Equal => Some(FixedDec(self.0)),
             Ordering::Greater => {
                 let diff = P - O;
-                T::ten_power(diff).and_then(|prec| self.0.checked_div(prec).map(FixedDec))
+                ten_power::<T>(diff).and_then(|prec| self.0.checked_div(prec).map(FixedDec))
             }
             Ordering::Less => {
                 let diff = O - P;
-                T::ten_power(diff).and_then(|prec| self.0.checked_mul(prec).map(FixedDec))
+                ten_power::<T>(diff).and_then(|prec| self.0.checked_mul(prec).map(FixedDec))
             }
         }
     }
@@ -183,7 +189,7 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         } else {
             // both the unwrap should not be possible to trigger since prec < P
             // will result in a valid ten's encoding and checked_rem.
-            let wrap = T::ten_power(P - prec).unwrap();
+            let wrap = ten_power::<T>(P - prec).unwrap();
             Self(self.0 - self.0.checked_rem(wrap).unwrap())
         }
     }
@@ -196,7 +202,7 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     /// assert_eq!(f.integral(), 1);
     /// ```
     pub fn integral(self) -> T {
-        T::ten_power(P)
+        ten_power::<T>(P)
             .and_then(|prec| self.0.checked_div(prec))
             .unwrap()
     }
@@ -209,7 +215,7 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     /// assert_eq!(f.fractional(), 234);
     /// ```
     pub fn fractional(self) -> T {
-        T::ten_power(P)
+        ten_power::<T>(P)
             .and_then(|prec| self.0.checked_rem(prec))
             .unwrap()
     }
@@ -331,5 +337,12 @@ mod tests {
         assert_eq!(x3.round_at(2), FixedDec::new(1230));
         assert_eq!(x4.round_at(1), FixedDec::new(123450));
         assert_eq!(x4.round_at(3), FixedDec::new(123456));
+    }
+
+    #[test]
+    fn min_max() {
+        let m = FixedDec::<u32, 4>::MIN;
+        let m2 = FixedDec::<u32, 4>::MAX;
+        assert_eq!(m, m2)
     }
 }
