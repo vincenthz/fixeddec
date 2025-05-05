@@ -27,6 +27,7 @@
 //! For example this could be used to define SI suffixes:
 //!
 //! ```
+//! # use fixeddec::FixedDec;
 //! type Milli = FixedDec<u64, 3>;
 //! type Micro = FixedDec<u64, 6>;
 //! type Nano = FixedDec<u64, 9>;
@@ -172,22 +173,35 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         U::try_from(self.0).map(FixedDec)
     }
 
+    /// Add two elements with checked result
+    ///
+    /// If the addition result doesn't fits in the type T, then None is returned
     pub fn checked_add(self, rhs: Self) -> Option<Self> {
         self.0.checked_add(rhs.0).map(Self)
     }
 
+    /// Subtract two elements with checked result
+    ///
+    /// If the subtraction result doesn't fits in the type T, then None is returned
     pub fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self)
     }
 
+    /// Multiplication (Scaling) with checked result
+    ///
+    /// Note that operands are mixed between FixedDec and a scalar T, not another FixedDec.
+    ///
+    /// If the multiplication result doesn't fits in the type T, then None is returned
     pub fn checked_mul(self, rhs: T) -> Option<Self> {
         self.0.checked_mul(rhs).map(Self)
     }
 
+    /// Division (Inverse Scaling) with checked result
     pub fn checked_div(self, rhs: T) -> Option<Self> {
         self.0.checked_div(rhs).map(Self)
     }
 
+    /// Checked remainder. Computes self % rhs, returning None if rhs == 0.
     pub fn checked_rem(self, rhs: T) -> Option<Self> {
         self.0.checked_rem(rhs).map(Self)
     }
@@ -239,6 +253,51 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     /// ```
     pub const fn value(self) -> T {
         self.0
+    }
+
+    /// Parse a string containing a fractional number (e.g. "1.234")
+    ///
+    /// If the string doesn't contain any dot, then it interpreted as an integral number.
+    pub fn from_str(s: &str) -> Option<Self> {
+        let ten = ten_power(1).unwrap(); // safe all types have 10
+        if let Some((i1, f1)) = s.split_once('.') {
+            if !i1.chars().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+            if !f1.chars().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+
+            let mut acc = T::ZERO;
+
+            // integral part
+            for c in i1.chars() {
+                let i = T::from_digit10(c)?;
+                acc = acc.checked_mul(ten)?.checked_add(i)?;
+            }
+
+            // fractional part
+            for (depth, c) in f1.chars().enumerate() {
+                if depth >= P as usize {
+                    break;
+                }
+                let i = T::from_digit10(c)?;
+                acc = acc.checked_mul(ten)?.checked_add(i)?;
+            }
+
+            Some(Self::new(acc))
+        } else {
+            // no fractional .
+            if !s.chars().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+            let mut acc = T::ZERO;
+            for c in s.chars() {
+                let i = T::from_digit10(c)?;
+                acc = acc.checked_mul(ten)?.checked_add(i)?;
+            }
+            Self::from_integral(acc)
+        }
     }
 }
 
@@ -347,5 +406,19 @@ mod tests {
         assert_eq!(x3.round_at(2), FixedDec::new(1230));
         assert_eq!(x4.round_at(1), FixedDec::new(123450));
         assert_eq!(x4.round_at(3), FixedDec::new(123456));
+    }
+
+    #[test]
+    fn from_str() {
+        let x0 = FixedDec::<u32, 0>::new(1234);
+        let x1 = FixedDec::<u32, 3>::new(1234);
+        let x2 = FixedDec::<u32, 3>::new(10234);
+        let x3 = FixedDec::<u32, 4>::new(10234);
+
+        assert_eq!(FixedDec::from_str("1234"), Some(x0));
+        assert_eq!(FixedDec::from_str("1.234"), Some(x1));
+        assert_eq!(FixedDec::from_str("10.234"), Some(x2));
+        assert_eq!(FixedDec::from_str("1.0234"), Some(x3));
+        assert_eq!(FixedDec::from_str("1.02345"), Some(x3));
     }
 }

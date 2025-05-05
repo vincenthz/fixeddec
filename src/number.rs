@@ -17,12 +17,15 @@ pub trait Number:
     const TEN_POWER: &'static [Self];
     const MIN: Self;
     const MAX: Self;
+    const ZERO: Self;
 
     fn checked_add(self, rhs: Self) -> Option<Self>;
     fn checked_sub(self, rhs: Self) -> Option<Self>;
     fn checked_mul(self, rhs: Self) -> Option<Self>;
     fn checked_div(self, rhs: Self) -> Option<Self>;
     fn checked_rem(self, rhs: Self) -> Option<Self>;
+
+    fn from_digit10(c: char) -> Option<Self>;
 }
 
 pub(crate) const fn ten_power<T: Number>(p: u32) -> Option<T> {
@@ -38,6 +41,7 @@ macro_rules! number_impl {
         impl Number for $ty {
             const MIN : $ty = <$ty>::MIN;
             const MAX : $ty = <$ty>::MAX;
+            const ZERO : $ty = 0;
             const TEN_POWER : &'static [$ty] = &$power10;
             fn checked_add(self, rhs: $ty) -> Option<$ty> {
                 self.checked_add(rhs)
@@ -51,6 +55,11 @@ macro_rules! number_impl {
             fn checked_div(self, rhs: $ty) -> Option<$ty> {
                 self.checked_div(rhs)
             }
+            fn from_digit10(c: char) -> Option<$ty> {
+                // all rust integral type can represent number between 0-9
+                c.to_digit(10).map(|i| i as $ty)
+            }
+
             $($tt)+
         }
     };
