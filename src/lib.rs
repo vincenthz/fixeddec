@@ -277,12 +277,18 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
             }
 
             // fractional part
+            let sz_frac = f1.chars().count();
             for (depth, c) in f1.chars().enumerate() {
                 if depth >= P as usize {
                     break;
                 }
                 let i = T::from_digit10(c)?;
                 acc = acc.checked_mul(ten)?.checked_add(i)?;
+            }
+
+            if sz_frac < P as usize {
+                let mul = ten_power(P - sz_frac as u32)?;
+                acc = acc.checked_mul(mul)?;
             }
 
             Some(Self::new(acc))
@@ -414,11 +420,13 @@ mod tests {
         let x1 = FixedDec::<u32, 3>::new(1234);
         let x2 = FixedDec::<u32, 3>::new(10234);
         let x3 = FixedDec::<u32, 4>::new(10234);
+        let x4 = FixedDec::<u32, 4>::new(12340);
 
         assert_eq!(FixedDec::from_str("1234"), Some(x0));
         assert_eq!(FixedDec::from_str("1.234"), Some(x1));
         assert_eq!(FixedDec::from_str("10.234"), Some(x2));
         assert_eq!(FixedDec::from_str("1.0234"), Some(x3));
         assert_eq!(FixedDec::from_str("1.02345"), Some(x3));
+        assert_eq!(FixedDec::from_str("1.234"), Some(x4));
     }
 }
