@@ -8,7 +8,14 @@ authors = ["Vincent Hanquez <vincent@coretype.io>"]
 rust-version = "1.85"
 homepage = "https://github.com/vincenthz/fixeddec"
 repository = "https://github.com/vincenthz/fixeddec"
-keywords = [ "Arithmetic", "Decimal" ]
+keywords = ["Arithmetic", "Decimal"]
 categories = ["Mathematics"]
 
 [dependencies]
+
+[dev-dependencies]
+divan = "0.1"
+
+[[bench]]
+name = "bench"
+harness = false
