@@ -28,6 +28,11 @@ pub trait Number:
     fn from_digit10(c: char) -> Option<Self>;
 }
 
+pub(crate) const fn ten<T: Number>() -> T {
+    const { assert!(T::TEN_POWER.len() > 1) };
+    T::TEN_POWER[1]
+}
+
 pub(crate) const fn ten_power<T: Number>(p: u32) -> Option<T> {
     if T::TEN_POWER.len() > p as usize {
         Some(T::TEN_POWER[p as usize])

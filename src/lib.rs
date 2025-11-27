@@ -273,7 +273,7 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     ///
     /// If the string doesn't contain any dot, then it interpreted as an integral number.
     pub fn from_str(s: &str) -> Option<Self> {
-        let ten = ten_power(1).unwrap(); // safe all types have 10
+        let ten = ten();
         if let Some((i1, f1)) = s.split_once('.') {
             if !i1.chars().all(|c| c.is_ascii_digit()) {
                 return None;
@@ -318,6 +318,12 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
             }
             Self::from_integral(acc)
         }
+    }
+
+    /// The output precision need to be twice the precision of the original value
+    pub fn square_precise<const O: u32>(self) -> Option<FixedDec<T, O>> {
+        const { assert!(O == P * 2) };
+        self.0.checked_mul(self.0).map(FixedDec)
     }
 }
 
