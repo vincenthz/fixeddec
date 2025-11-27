@@ -74,6 +74,20 @@ mod number;
 
 use number::{Number, ten_power};
 
+use crate::number::ten;
+
+/// u32 (32 bits) aliases to FixedDec
+#[allow(non_camel_case_types)]
+pub type fdec32<const P: u32> = FixedDec<u32, P>;
+
+/// u64 (64 bits) aliases to FixedDec
+#[allow(non_camel_case_types)]
+pub type fdec64<const P: u32> = FixedDec<u64, P>;
+
+/// u128 (128 bits) aliases to FixedDec
+#[allow(non_camel_case_types)]
+pub type fdec128<const P: u32> = FixedDec<u128, P>;
+
 /// A integral number with a precision of fractional digits
 ///
 /// At P=0, it is a normal integer with no fractional part
