@@ -10,6 +10,10 @@ pub trait Number:
     + MulAssign
     + Div<Output = Self>
     + DivAssign
+    + PartialEq
+    + Eq
+    + PartialOrd
+    + Ord
     + alloc::fmt::Debug
     + alloc::fmt::Display
     + 'static
@@ -18,6 +22,9 @@ pub trait Number:
     const MIN: Self;
     const MAX: Self;
     const ZERO: Self;
+    const ONE: Self;
+
+    type Signed;
 
     fn checked_add(self, rhs: Self) -> Option<Self>;
     fn checked_sub(self, rhs: Self) -> Option<Self>;
@@ -29,8 +36,12 @@ pub trait Number:
 }
 
 pub(crate) const fn ten<T: Number>() -> T {
-    const { assert!(T::TEN_POWER.len() > 1) };
-    T::TEN_POWER[1]
+    ten_power_const::<T, 1>()
+}
+
+pub(crate) const fn ten_power_const<T: Number, const P: u32>() -> T {
+    const { assert!(T::TEN_POWER.len() > P as usize) };
+    T::TEN_POWER[P as usize]
 }
 
 pub(crate) const fn ten_power<T: Number>(p: u32) -> Option<T> {
@@ -42,12 +53,15 @@ pub(crate) const fn ten_power<T: Number>(p: u32) -> Option<T> {
 }
 
 macro_rules! number_impl {
-    ($ty:ty, $power10:expr, $($tt:tt)+) => {
+    ($ty:ty, $ity:ty, $power10:expr, $($tt:tt)+) => {
         impl Number for $ty {
             const MIN : $ty = <$ty>::MIN;
             const MAX : $ty = <$ty>::MAX;
             const ZERO : $ty = 0;
+            const ONE : $ty = 1;
             const TEN_POWER : &'static [$ty] = &$power10;
+            type Signed = $ity;
+
             fn checked_add(self, rhs: $ty) -> Option<$ty> {
                 self.checked_add(rhs)
             }
@@ -71,9 +85,10 @@ macro_rules! number_impl {
 }
 
 macro_rules! number_unsigned_impl {
-    ($ty:ty,$power10:expr) => {
+    ($ty:ty,$ity:ty,$power10:expr) => {
         number_impl!(
             $ty,
+            $ity,
             $power10,
             fn checked_rem(self, rhs: $ty) -> Option<$ty> {
                 self.checked_rem(rhs)
@@ -81,22 +96,11 @@ macro_rules! number_unsigned_impl {
         );
     };
 }
-macro_rules! number_signed_impl {
-    ($ty:ty,$power10:expr) => {
-        number_impl!(
-            $ty,
-            $power10,
-            fn checked_rem(self, rhs: $ty) -> Option<$ty> {
-                self.abs().checked_rem(rhs)
-            }
-        );
-    };
-}
-
-number_unsigned_impl!(u8, [1, 10, 100]);
-number_unsigned_impl!(u16, [1, 10, 100, 1000, 10000]);
+number_unsigned_impl!(u8, i8, [1, 10, 100]);
+number_unsigned_impl!(u16, i16, [1, 10, 100, 1000, 10000]);
 number_unsigned_impl!(
     u32,
+    i32,
     [
         1,
         10,
@@ -112,6 +116,7 @@ number_unsigned_impl!(
 );
 number_unsigned_impl!(
     u64,
+    i64,
     [
         1,
         10,
@@ -137,91 +142,6 @@ number_unsigned_impl!(
 );
 number_unsigned_impl!(
     u128,
-    [
-        1,
-        10,
-        100,
-        1_000,
-        10_000,
-        100_000,
-        1_000_000,
-        10_000_000,
-        100_000_000,
-        1_000_000_000,
-        10_000_000_000,
-        100_000_000_000,
-        1_000_000_000_000,
-        10_000_000_000_000,
-        100_000_000_000_000,
-        1_000_000_000_000_000,
-        10_000_000_000_000_000,
-        100_000_000_000_000_000,
-        1_000_000_000_000_000_000,
-        10_000_000_000_000_000_000,
-        100_000_000_000_000_000_000,
-        1_000_000_000_000_000_000_000,
-        10_000_000_000_000_000_000_000,
-        100_000_000_000_000_000_000_000,
-        1_000_000_000_000_000_000_000_000,
-        10_000_000_000_000_000_000_000_000,
-        100_000_000_000_000_000_000_000_000,
-        1_000_000_000_000_000_000_000_000_000,
-        10_000_000_000_000_000_000_000_000_000,
-        100_000_000_000_000_000_000_000_000_000,
-        1_000_000_000_000_000_000_000_000_000_000,
-        10_000_000_000_000_000_000_000_000_000_000,
-        100_000_000_000_000_000_000_000_000_000_000,
-        1_000_000_000_000_000_000_000_000_000_000_000,
-        10_000_000_000_000_000_000_000_000_000_000_000,
-        100_000_000_000_000_000_000_000_000_000_000_000,
-        1_000_000_000_000_000_000_000_000_000_000_000_000,
-        10_000_000_000_000_000_000_000_000_000_000_000_000,
-        100_000_000_000_000_000_000_000_000_000_000_000_000,
-    ]
-);
-
-number_signed_impl!(i8, [1, 10, 100]);
-number_signed_impl!(i16, [1, 10, 100, 1000, 10000]);
-number_signed_impl!(
-    i32,
-    [
-        1,
-        10,
-        100,
-        1_000,
-        10_000,
-        100_000,
-        1_000_000,
-        10_000_000,
-        100_000_000,
-        1_000_000_000,
-    ]
-);
-number_signed_impl!(
-    i64,
-    [
-        1,
-        10,
-        100,
-        1_000,
-        10_000,
-        100_000,
-        1_000_000,
-        10_000_000,
-        100_000_000,
-        1_000_000_000,
-        10_000_000_000,
-        100_000_000_000,
-        1_000_000_000_000,
-        10_000_000_000_000,
-        100_000_000_000_000,
-        1_000_000_000_000_000,
-        10_000_000_000_000_000,
-        100_000_000_000_000_000,
-        1_000_000_000_000_000_000,
-    ]
-);
-number_signed_impl!(
     i128,
     [
         1,
