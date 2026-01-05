@@ -181,6 +181,22 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         self.0.checked_rem(ten_power_const::<T, P>()).unwrap()
     }
 
+    /// Convert a fixed decimal into a f32 (with potential data loss)
+    pub fn as_f32(self) -> f32
+    where
+        f32: From<T>,
+    {
+        f32::from(self.0) / f32::from(ten_power_const::<T, P>())
+    }
+
+    /// Convert a fixed decimal into a f64 (with potential data loss)
+    pub fn as_f64(self) -> f64
+    where
+        f64: From<T>,
+    {
+        f64::from(self.0) / f64::from(ten_power_const::<T, P>())
+    }
+
     /// Return the content value at the precision required
     ///
     /// ```

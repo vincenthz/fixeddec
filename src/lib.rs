@@ -51,7 +51,7 @@
 //! ```rust
 //! use fixeddec::FixedDec;
 //!
-//! let a: FixedDec<i32, 2> = FixedDec::new(12345);
+//! let a: FixedDec<u32, 2> = FixedDec::new(12345);
 //! assert_eq!(a.to_string(), "123.45");
 //!
 //! // with float    : 0.1 + 0.2 = 0.30000000000000004
@@ -155,5 +155,22 @@ mod tests {
         assert_eq!(FixedDec::from_str("1.0234"), Some(x3));
         assert_eq!(FixedDec::from_str("1.02345"), Some(x3));
         assert_eq!(FixedDec::from_str("1.234"), Some(x4));
+    }
+
+    #[test]
+    fn floating64() {
+        let x0 = FixedDec::<u32, 0>::new(1234);
+        let x1 = FixedDec::<u32, 3>::new(1234);
+        let x2 = FixedDec::<u32, 3>::new(10234);
+        let x3 = FixedDec::<u32, 4>::new(10234);
+        let x4 = FixedDec::<u32, 4>::new(12340);
+
+        let s = ["1234", "1.234", "10.234", "1.0234", "1.234"];
+
+        assert_eq!(alloc::format!("{}", x0.as_f64()), s[0]);
+        assert_eq!(alloc::format!("{}", x1.as_f64()), s[1]);
+        assert_eq!(alloc::format!("{}", x2.as_f64()), s[2]);
+        assert_eq!(alloc::format!("{}", x3.as_f64()), s[3]);
+        assert_eq!(alloc::format!("{}", x4.as_f64()), s[4]);
     }
 }
