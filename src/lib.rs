@@ -63,7 +63,7 @@
 //! assert_eq!(point_one + point_two, point_three);
 //! ```
 //!
-#![no_std]
+//#![no_std]
 
 extern crate alloc;
 
@@ -172,5 +172,32 @@ mod tests {
         assert_eq!(alloc::format!("{}", x2.as_f64()), s[2]);
         assert_eq!(alloc::format!("{}", x3.as_f64()), s[3]);
         assert_eq!(alloc::format!("{}", x4.as_f64()), s[4]);
+    }
+
+    #[test]
+    fn sqrt() {
+        /*
+        let x0 = FixedDec::<u32, 3>::new(2_000);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 3>::new(1_414));
+        */
+
+        /*
+        let x0 = FixedDec::<u32, 0>::new(125348);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 0>::new(354));
+        */
+
+        /*
+        let x0 = FixedDec::<u32, 1>::new(125348_0);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 1>::new(354_0));
+        */
+
+        /*
+        let x0 = FixedDec::<u32, 3>::new(125348_000);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 3>::new(354_045));
+        */
     }
 }

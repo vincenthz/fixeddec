@@ -281,6 +281,22 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         const { assert!(O == P * 2) };
         self.0.checked_mul(self.0).map(FixedDec)
     }
+
+    /*
+    /// Calculate the square root of the value
+    pub fn sqrt(self) -> Self {
+        let two: T = T::ONE + T::ONE;
+        let mut guess = self.0 / two;
+        for _ in 0..10 {
+            let next_guess = (guess + (self.0 / guess)) / two;
+            if guess - next_guess < two {
+                break;
+            }
+            guess = next_guess
+        }
+        Self(guess)
+    }
+    */
 }
 
 impl<T: Number, const P: u32> Add for FixedDec<T, P> {
