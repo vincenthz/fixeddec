@@ -31,6 +31,7 @@ pub trait Number:
     fn checked_mul(self, rhs: Self) -> Option<Self>;
     fn checked_div(self, rhs: Self) -> Option<Self>;
     fn checked_rem(self, rhs: Self) -> Option<Self>;
+    fn isqrt(self) -> Self;
 
     fn from_digit10(c: char) -> Option<Self>;
 }
@@ -77,6 +78,9 @@ macro_rules! number_impl {
             fn from_digit10(c: char) -> Option<$ty> {
                 // all rust integral type can represent number between 0-9
                 c.to_digit(10).map(|i| i as $ty)
+            }
+            fn isqrt(self) -> Self {
+                self.isqrt()
             }
 
             $($tt)+

@@ -282,21 +282,35 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         self.0.checked_mul(self.0).map(FixedDec)
     }
 
-    /*
     /// Calculate the square root of the value
-    pub fn sqrt(self) -> Self {
-        let two: T = T::ONE + T::ONE;
-        let mut guess = self.0 / two;
-        for _ in 0..10 {
-            let next_guess = (guess + (self.0 / guess)) / two;
-            if guess - next_guess < two {
-                break;
-            }
-            guess = next_guess
+    pub fn sqrt(self) -> Option<Self> {
+        // calculate a low bound for the possible candidate.
+        // no precision adjustment is done, so quite a few digits are lost here using isqrt() for the value and the exponent
+        let raw_root = self.0.isqrt();
+        let exponent = ten_power_const::<T, P>();
+        let exponent_root = exponent.isqrt();
+
+        let low = Self(raw_root * exponent_root);
+        let one = T::ONE;
+
+        if low.square() == Some(self) {
+            return Some(low);
         }
-        Self(guess)
+
+        // we adjust the candidate incrementally/naively until it is above the initial value we are calculating the value
+        let mut candidate = low;
+        loop {
+            let next = candidate + Self(one);
+            let Some(v) = next.square() else {
+                return None;
+            };
+            if v > self {
+                return Some(candidate);
+            } else {
+                candidate = next;
+            }
+        }
     }
-    */
 }
 
 impl<T: Number, const P: u32> Add for FixedDec<T, P> {

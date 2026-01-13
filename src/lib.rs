@@ -176,28 +176,25 @@ mod tests {
 
     #[test]
     fn sqrt() {
-        /*
+        let x0 = FixedDec::<u32, 2>::new(2_00);
+        let v = x0.sqrt();
+        assert_eq!(v, Some(FixedDec::<u32, 2>::new(1_41)));
+
         let x0 = FixedDec::<u32, 3>::new(2_000);
         let v = x0.sqrt();
-        assert_eq!(v, FixedDec::<u32, 3>::new(1_414));
-        */
+        assert_eq!(v, Some(FixedDec::<u32, 3>::new(1_414)));
 
-        /*
         let x0 = FixedDec::<u32, 0>::new(125348);
         let v = x0.sqrt();
-        assert_eq!(v, FixedDec::<u32, 0>::new(354));
-        */
+        assert_eq!(v, Some(FixedDec::<u32, 0>::new(354)));
 
-        /*
         let x0 = FixedDec::<u32, 1>::new(125348_0);
         let v = x0.sqrt();
-        assert_eq!(v, FixedDec::<u32, 1>::new(354_0));
-        */
+        assert_eq!(v, Some(FixedDec::<u32, 1>::new(354_0)));
 
-        /*
         let x0 = FixedDec::<u32, 3>::new(125348_000);
         let v = x0.sqrt();
-        assert_eq!(v, FixedDec::<u32, 3>::new(354_045));
-        */
+        // due to precision overflow during multiplication it is None instead of the 354_045
+        assert_eq!(v, None);
     }
 }
