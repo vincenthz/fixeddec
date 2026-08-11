@@ -282,34 +282,69 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         self.0.checked_mul(self.0).map(FixedDec)
     }
 
-    /// Calculate the square root of the value
-    pub fn sqrt(self) -> Option<Self> {
+    /// Calculate the square root of the value, truncated towards zero
+    ///
+    /// The result is the largest value that squares back to at most the original value, so it is
+    /// exact when the value is a perfect square and one unit of precision short of the real root
+    /// otherwise. It is defined for every value, as the root of the largest value representable
+    /// at a given precision is always representable at that same precision.
+    ///
+    /// ```
+    /// # use fixeddec::FixedDec;
+    /// // sqrt(2) with 3 fractional digits
+    /// let two = FixedDec::<u32, 3>::new(2_000);
+    /// assert_eq!(two.sqrt(), FixedDec::<u32, 3>::new(1_414));
+    /// ```
+    ///
+    pub fn sqrt(self) -> Self {
+        let exponent = ten_power_const::<T, P>();
+
+        // double precision product, with the halves ordered high first so that comparing two of
+        // them compares the products they stand for
+        let wide_mul = |a: T, b: T| {
+            let (low, high) = a.widening_mul(b);
+            (high, low)
+        };
+
+        // the value brought to the precision a candidate's square lands at, i.e. `self * 10^P`,
+        // kept at double precision so that the square of any candidate up to T::MAX can be
+        // compared against it exactly. comparing against square() instead would see the truncated
+        // quotient only, and accept any candidate whose square overshoots within the P discarded
+        // digits, which for values small next to 10^P is most of the range.
+        let target = wide_mul(self.0, exponent);
+
         // calculate a low bound for the possible candidate.
         // no precision adjustment is done, so quite a few digits are lost here using isqrt() for the value and the exponent
         let raw_root = self.0.isqrt();
-        let exponent = ten_power_const::<T, P>();
         let exponent_root = exponent.isqrt();
 
-        let low = Self(raw_root * exponent_root);
-        let one = T::ONE;
+        // isqrt() truncates both factors, so this bound never sits above the root
+        let low = raw_root * exponent_root;
 
-        if low.square() == Some(self) {
-            return Some(low);
-        }
+        // rounding each factor up instead gives a bound strictly above the root, as isqrt()
+        // undershoots each of them by less than one. it is not always representable, and T::MAX
+        // then serves just as well: no power of ten reaches T::MAX, so `self * 10^P < T::MAX²`.
+        let high = (raw_root + T::ONE)
+            .checked_mul(exponent_root + T::ONE)
+            .unwrap_or(T::MAX);
 
-        // we adjust the candidate incrementally/naively until it is above the initial value we are calculating the value
-        let mut candidate = low;
-        loop {
-            let next = candidate + Self(one);
-            let Some(v) = next.square() else {
-                return None;
-            };
-            if v > self {
-                return Some(candidate);
+        // the digits lost in the bounds can leave them a long way apart, so the gap is closed by
+        // bisection instead of one raw unit at a time: the number of steps is then proportional to
+        // the width of T rather than to the magnitude of the result.
+        let two = T::ONE + T::ONE;
+        let mut lo = low;
+        let mut hi = high;
+
+        // invariant: lo² <= self * 10^P < hi²
+        while hi - lo > T::ONE {
+            let mid = lo + (hi - lo) / two;
+            if wide_mul(mid, mid) > target {
+                hi = mid;
             } else {
-                candidate = next;
+                lo = mid;
             }
         }
+        Self(lo)
     }
 }
 

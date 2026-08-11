@@ -178,23 +178,65 @@ mod tests {
     fn sqrt() {
         let x0 = FixedDec::<u32, 2>::new(2_00);
         let v = x0.sqrt();
-        assert_eq!(v, Some(FixedDec::<u32, 2>::new(1_41)));
+        assert_eq!(v, FixedDec::<u32, 2>::new(1_41));
 
         let x0 = FixedDec::<u32, 3>::new(2_000);
         let v = x0.sqrt();
-        assert_eq!(v, Some(FixedDec::<u32, 3>::new(1_414)));
+        assert_eq!(v, FixedDec::<u32, 3>::new(1_414));
 
         let x0 = FixedDec::<u32, 0>::new(125348);
         let v = x0.sqrt();
-        assert_eq!(v, Some(FixedDec::<u32, 0>::new(354)));
+        assert_eq!(v, FixedDec::<u32, 0>::new(354));
 
         let x0 = FixedDec::<u32, 1>::new(125348_0);
         let v = x0.sqrt();
-        assert_eq!(v, Some(FixedDec::<u32, 1>::new(354_0)));
+        assert_eq!(v, FixedDec::<u32, 1>::new(354_0));
 
         let x0 = FixedDec::<u32, 3>::new(125348_000);
         let v = x0.sqrt();
-        // due to precision overflow during multiplication it is None instead of the 354_045
-        assert_eq!(v, None);
+        assert_eq!(v, FixedDec::<u32, 3>::new(354_045));
+
+        // wide backing type: the low bound starts ~5% under the root, which is 200+ million
+        // raw units away here, so this only completes quickly with a bisecting search
+        let x0 = FixedDec::<u64, 1>::new(1_600_000_000_000_000_000);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u64, 1>::new(4_000_000_000));
+
+        // values small next to 10^P: the answer is only right if the candidate is compared at
+        // double precision, as the whole square sits inside the digits square() discards
+        let x0 = FixedDec::<u32, 3>::new(1);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 3>::new(31));
+
+        let x0 = FixedDec::<u32, 2>::new(3);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 2>::new(17));
+
+        let x0 = FixedDec::<u32, 3>::new(10);
+        let v = x0.sqrt();
+        assert_eq!(v, FixedDec::<u32, 3>::new(100));
+
+        // the whole range is reachable: scaling the value by 10^P overflows T for all of these,
+        // so the candidate can only be compared at double precision
+        let v = FixedDec::<u8, 2>::MAX.sqrt();
+        assert_eq!(v, FixedDec::<u8, 2>::new(159));
+
+        let v = FixedDec::<u32, 0>::MAX.sqrt();
+        assert_eq!(v, FixedDec::<u32, 0>::new(65535));
+
+        let v = FixedDec::<u32, 3>::MAX.sqrt();
+        assert_eq!(v, FixedDec::<u32, 3>::new(2_072_430));
+
+        let v = FixedDec::<u64, 9>::new(19_000_000_000).sqrt();
+        assert_eq!(v, FixedDec::<u64, 9>::new(4_358_898_943));
+
+        let v = FixedDec::<u64, 9>::MAX.sqrt();
+        assert_eq!(v, FixedDec::<u64, 9>::new(135_818_791_312_945));
+
+        let v = FixedDec::<u128, 38>::MAX.sqrt();
+        assert_eq!(
+            v,
+            FixedDec::<u128, 38>::new(184_467_440_737_095_516_159_999_999_999_999_999_999)
+        );
     }
 }
