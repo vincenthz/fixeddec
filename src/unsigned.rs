@@ -259,18 +259,21 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
         }
     }
 
-    /// Multiply two value at the given precision
+    /// Multiply two value at the given precision, truncating the digits below it
+    ///
+    /// The product is formed at double precision, so only a result that does not fit at this
+    /// precision returns None, not an intermediate.
     pub fn multiply(self, other: Self) -> Option<Self> {
-        let r = self.0.checked_mul(other.0)?;
-        let div = ten_power_const::<T, P>();
-        Some(Self(r / div))
+        let (low, high) = self.0.widening_mul(other.0);
+        T::widening_div(low, high, ten_power_const::<T, P>()).map(Self)
     }
 
-    /// Square the value at the same precision as the callee
+    /// Square the value at the same precision as the callee, truncating the digits below it
+    ///
+    /// As with [`FixedDec::multiply`], only a result that does not fit at this precision returns
+    /// None.
     pub fn square(self) -> Option<Self> {
-        let r = self.0.checked_mul(self.0)?;
-        let div = ten_power_const::<T, P>();
-        Some(Self(r / div))
+        self.multiply(self)
     }
 
     /// Square the value at double precision
@@ -280,6 +283,63 @@ impl<T: Number, const P: u32> FixedDec<T, P> {
     pub fn square_precise<const O: u32>(self) -> Option<FixedDec<T, O>> {
         const { assert!(O == P * 2) };
         self.0.checked_mul(self.0).map(FixedDec)
+    }
+
+    /// Raise the value to the power of an integral exponent, truncating the digits below the
+    /// precision
+    ///
+    /// ```
+    /// # use fixeddec::FixedDec;
+    /// let x = FixedDec::<u32, 4>::new(1_5000);
+    /// assert_eq!(x.powi(3), Some(FixedDec::<u32, 4>::new(3_3750)));
+    /// ```
+    ///
+    /// If the result doesn't fit in the backing type, then None is returned
+    pub fn powi(self, exponent: T) -> Option<Self> {
+        let scale = ten_power_const::<T, P>();
+        crate::exp::pow_scaled(self.0, exponent, scale, T::ZERO).map(Self)
+    }
+
+    /// Calculate `e` raised to the power of the value
+    ///
+    /// ```
+    /// # use fixeddec::FixedDec;
+    /// let one = FixedDec::<u32, 6>::from_integral(1).unwrap();
+    /// assert_eq!(one.exp(), Some(FixedDec::<u32, 6>::new(2_718282)));
+    /// ```
+    ///
+    /// Both halves of the computation are carried at more digits than the precision asked for, so
+    /// the result is exact to the last digit over most of the range, and near the top of it carries
+    /// the roundings of the repeated squaring: the measured worst case is a relative error of
+    /// 2e-8 with a `u32` backing type, 9e-18 with a `u64` and 3e-36 with a `u128`.
+    ///
+    /// The result leaves the backing type at a small value, e.g. anything above 23.6 at
+    /// `<u64, 9>`, and None is returned then. Within the relative error above of that limit the
+    /// overflow itself is decided at that same accuracy, so a value just past it can come back as a
+    /// result close to [`FixedDec::MAX`] rather than as None.
+    pub fn exp(self) -> Option<Self> {
+        crate::exp::exp(self.integral(), self.fractional(), P).map(Self)
+    }
+
+    /// Calculate `e` raised to the power of the value negated, i.e. `e^-x`
+    ///
+    /// ```
+    /// # use fixeddec::FixedDec;
+    /// let one = FixedDec::<u32, 6>::from_integral(1).unwrap();
+    /// assert_eq!(one.exp_neg(), FixedDec::<u32, 6>::new(367_879));
+    /// ```
+    ///
+    /// Unlike [`FixedDec::exp`] this cannot fail, as the result is always in `(0, 1]`. A value
+    /// large enough for `e^-x` to fall below the precision gives zero.
+    ///
+    /// The whole computation stays below one, which leaves it the full width of the backing type
+    /// and makes the result exact to the last digit at any precision short of that width. At that
+    /// last precision there are no digits left over to absorb the rounding of each term, and the
+    /// last digit can then be one out, which also means the result is not monotone there.
+    pub fn exp_neg(self) -> Self {
+        // every step of the negated case is at or below one, so nothing on the way there can leave
+        // the range of the backing type and the unwrap cannot trigger
+        Self(crate::exp::exp_neg(self.integral(), self.fractional(), P).unwrap())
     }
 
     /// Calculate the square root of the value, truncated towards zero

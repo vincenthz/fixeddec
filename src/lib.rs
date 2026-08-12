@@ -68,6 +68,7 @@
 extern crate alloc;
 
 pub mod constants;
+mod exp;
 mod number;
 mod signed;
 mod unsigned;
@@ -238,5 +239,94 @@ mod tests {
             v,
             FixedDec::<u128, 38>::new(184_467_440_737_095_516_159_999_999_999_999_999_999)
         );
+    }
+
+    #[test]
+    fn exp() {
+        // exact to the last digit wherever the guard digits absorb the truncated terms
+        assert_eq!(
+            FixedDec::<u32, 6>::new(0).exp(),
+            Some(FixedDec::new(1_000_000))
+        );
+        assert_eq!(
+            FixedDec::<u32, 6>::new(500_000).exp(),
+            Some(FixedDec::new(1_648_721))
+        );
+        assert_eq!(
+            FixedDec::<u32, 6>::new(1_000_000).exp(),
+            Some(FixedDec::new(2_718_282))
+        );
+        assert_eq!(
+            FixedDec::<u64, 9>::new(1_000_000_000).exp(),
+            Some(FixedDec::new(2_718_281_828))
+        );
+        // e^57, whose leading digits would all be lost if the powers of e were built at the
+        // precision asked for, as `e` itself is only 3 there
+        assert_eq!(
+            FixedDec::<u128, 0>::new(57).exp(),
+            Some(FixedDec::new(5_685_719_999_335_932_222_640_349))
+        );
+
+        // above the range of the backing type at that precision
+        assert_eq!(FixedDec::<u32, 6>::new(10_000_000).exp(), None); // e^10 = 22026.5
+        assert_eq!(FixedDec::<u64, 9>::new(24_000_000_000).exp(), None); // e^24 = 2.6e10
+        assert_eq!(FixedDec::<u128, 0>::new(89).exp(), None);
+
+        // close to the top of the range the last digits carry the roundings of the whole squaring
+        // chain, a relative error of about 1e-17 for a 19 digits backing type
+        let v = FixedDec::<u64, 9>::new(23_600_000_000).exp().unwrap();
+        let reference = 17_756_189_565_520_348_111; // e^23.6 rounded at 9 digits
+        assert!(
+            v.value().abs_diff(reference) < 1_000,
+            "{v} is not within 1000 units of the last digit"
+        );
+    }
+
+    #[test]
+    fn exp_neg() {
+        assert_eq!(
+            FixedDec::<u32, 6>::new(0).exp_neg(),
+            FixedDec::new(1_000_000)
+        );
+        assert_eq!(
+            FixedDec::<u32, 6>::new(1_000_000).exp_neg(),
+            FixedDec::new(367_879)
+        );
+        assert_eq!(
+            FixedDec::<u32, 6>::new(2_500_000).exp_neg(),
+            FixedDec::new(82_085)
+        );
+        assert_eq!(
+            FixedDec::<u64, 18>::new(1_000_000_000_000_000_000).exp_neg(),
+            FixedDec::new(367_879_441_171_442_322)
+        );
+
+        // e^-20 sits below the last digit at this precision
+        assert_eq!(
+            FixedDec::<u32, 6>::new(20_000_000).exp_neg(),
+            FixedDec::new(0)
+        );
+
+        // and the result never leaves the range, whatever the value
+        assert_eq!(FixedDec::<u32, 0>::MAX.exp_neg(), FixedDec::new(0));
+        assert!(FixedDec::<u128, 38>::MAX.exp_neg() <= FixedDec::from_integral(1).unwrap());
+    }
+
+    #[test]
+    fn powi() {
+        assert_eq!(
+            FixedDec::<u32, 4>::new(15_000).powi(0),
+            Some(FixedDec::new(10_000))
+        );
+        assert_eq!(
+            FixedDec::<u32, 4>::new(15_000).powi(3),
+            Some(FixedDec::new(33_750))
+        );
+        assert_eq!(
+            FixedDec::<u64, 9>::new(1_000_000_001).powi(10),
+            Some(FixedDec::new(1_000_000_010))
+        );
+        // 9^9 needs 9 integral digits, more than this type has left at 4 fractional ones
+        assert_eq!(FixedDec::<u32, 4>::new(90_000).powi(9), None);
     }
 }

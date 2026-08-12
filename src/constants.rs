@@ -1,4 +1,5 @@
 use crate::FixedDec;
+use crate::number::Number;
 
 const PI_128DIGITS: u128 = 3_141_592_653_589_793_238_462_643_383_279_502_884_19;
 const PI_64DIGITS: u64 = 3_141_592_653_589_793_238;
@@ -8,13 +9,11 @@ pub const PI128: FixedDec<u128, 38> = FixedDec::new(PI_128DIGITS);
 pub const PI64: FixedDec<u64, 18> = FixedDec::new(PI_64DIGITS);
 pub const PI32: FixedDec<u32, 9> = FixedDec::new(PI_32DIGITS);
 
-const E_128DIGITS: u128 = 2_718_281_828_459_045_235_360_287_471_352_662_497_75;
-const E_64DIGITS: u64 = 2_718_281_828_459_045_235;
-const E_32DIGITS: u32 = 2_718_281_828;
-
-pub const E128: FixedDec<u128, 38> = FixedDec::new(E_128DIGITS);
-pub const E64: FixedDec<u64, 18> = FixedDec::new(E_64DIGITS);
-pub const E32: FixedDec<u32, 9> = FixedDec::new(E_32DIGITS);
+// the digits live in the `Number` implementations, as the series that need them are generic over
+// the backing type. the precisions here are the ones they are given at, which `es` checks.
+pub const E128: FixedDec<u128, 38> = FixedDec::new(u128::E);
+pub const E64: FixedDec<u64, 18> = FixedDec::new(u64::E);
+pub const E32: FixedDec<u32, 9> = FixedDec::new(u32::E);
 
 #[cfg(test)]
 mod tests {
@@ -40,6 +39,10 @@ mod tests {
 
     #[test]
     fn es() {
+        assert_eq!(u32::E_PRECISION, 9);
+        assert_eq!(u64::E_PRECISION, 18);
+        assert_eq!(u128::E_PRECISION, 38);
+
         let e128 = alloc::format!("{}", E128);
         let e64 = alloc::format!("{}", E64);
         let e32 = alloc::format!("{}", E32);
